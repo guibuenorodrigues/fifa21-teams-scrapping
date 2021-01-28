@@ -12,43 +12,54 @@ class Scrapper():
         self.endpoint = "/pt-br/teams"
 
     def get_teams_info(self, how: str = 'all', index: int = 1) -> pd.DataFrame:
+        """[Get the teams information fro the specific webpage]
 
+        Args:
+            how (str, optional): if 'all', then get all pages. if 'from', then define the index to start the from. Defaults to 'all'.
+            index (int, optional): the page to start the retriving. if you define it, set "how" as 'from'. Defaults to 1.
+
+        Returns:
+            pd.DataFrame: the dataframe that contains all the data retrieved
+        """
+
+        index = index - 1  # make sure to start in the right index
         request_code = 200
-        page_number = 0
+        page_number = 0 if how == 'all' else abs(index)
         appended_data = []
 
         while(request_code == 200):
 
             page_number += 1
-            current_page = "{0}{1}/{2}".format(self.base_url, self.endpoint, page_number)
-            print("Executing scrapping on page {0} ({1})".format(page_number, current_page))
+            current_page = "{0}{1}/{2}".format(self.base_url,
+                                               self.endpoint, page_number)
+            print("Executing scrapping on page {0} ({1})".format(
+                page_number, current_page))
 
             # request content
             r = requests.get(current_page)
 
             # check if content exists
             if r.status_code != 200:
-                print("Leaving scrapping. Reason: status code = {0}".format(r.status_code))
+                print("Leaving scrapping. Reason: status code = {0}".format(
+                    r.status_code))
                 request_code = r.status_code
                 break
 
-
-            #get dataframe result for the page
+            # get dataframe result for the page
             df = self.__get_data_from_table(r.content)
             appended_data.append(df)
 
-        
         appended_data = pd.concat(appended_data)
         return appended_data
 
-    
     def __get_data_from_table(self, content: bytes) -> pd.DataFrame:
 
         # parse content to html
         soup = BeautifulSoup(content, 'html.parser')
 
-        #found table
-        table = soup.find_all("table", attrs={"class": "table table-striped table-teams"})
+        # found table
+        table = soup.find_all(
+            "table", attrs={"class": "table table-striped table-teams"})
 
         # validate table content
         if len(table) <= 0:
@@ -71,10 +82,10 @@ class Scrapper():
 
         # find all the headers columns
         for item in head.find_all("th"):
-            #remove special characters
+            # remove special characters
             item = (item.text).rstrip("\n")
-            
-            #add to the array
+
+            # add to the array
             headings.append(item)
 
         # set up the rows array
@@ -91,7 +102,6 @@ class Scrapper():
                 # remove special characters
                 aa = re.sub("(\xa0)|(\n)|,", "", row_item.text)
 
-                
                 img = row_item.find("img")
                 data_src = ""
 
@@ -103,14 +113,11 @@ class Scrapper():
 
                 aa = aa.replace('', data_src)
 
-
-
                 # add value to the row
                 row.append(aa)
 
             # add row to the array of rows
             all_rows.append(row)
-
 
         # create pandas dataframe
         df = pd.DataFrame(data=all_rows, columns=headings)
@@ -119,10 +126,9 @@ class Scrapper():
         df = self.__sanitize_dataframe(df)
 
         return df
-  
 
     def __sanitize_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        
+
         # remove null rows
         df = df.mask(df.eq('None')).dropna()
 
@@ -141,12 +147,10 @@ class Scrapper():
             'GER': 'overall_rating'
         }
         df = df.rename(columns=columns)
-        
+
         # df = df.astype({'attack_rating': 'int32'}).dtypes
         # df = df.astype({'midfield_rating': 'int32'}).dtypes
         # df = df.astype({'defense_rating': 'int32'}).dtypes
         # df = df.astype({'overal_rating': 'int32'}).dtypes
-
-
 
         return df
