@@ -34,10 +34,8 @@ if __name__ == "__main__":
     arguments = arg_parser.parse_args()
 
 
-    print(arguments.sql_db)
+    scrap = Scrapper()
+    df_teams = scrap.get_teams_info()
 
-    # scrap = Scrapper()
-    # df_teams = scrap.get_teams_info('from', 23)
-
-    # m = mysql.Mysql(host=sql_host, user=sql_user, password=sql_pass, db=sql_db)
-    # m.save_dataframe(df_teams)
+    m = mysql.Mysql(host=sql_host, user=sql_user, password=sql_pass, db=sql_db)
+    m.save_dataframe(df_teams)
